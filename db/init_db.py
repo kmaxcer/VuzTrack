@@ -1,83 +1,100 @@
-import sqlite3
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean
+from sqlalchemy.orm import DeclarativeBase, relationship, Session
 
-def create_db():
-    schema = '''
-    CREATE TABLE IF NOT EXISTS universities (
-        university_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        short_name TEXT,
-        region TEXT,
-        url TEXT
-    );
 
-    CREATE TABLE IF NOT EXISTS programs (
-        program_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        university_id INTEGER NOT NULL,
-        code TEXT,
-        name TEXT NOT NULL,
-        profile TEXT,
-        education_form TEXT,
-        level TEXT,
-        year INTEGER DEFAULT 2025,
-        budget_seats INTEGER DEFAULT 0,
-        FOREIGN KEY (university_id) REFERENCES universities(university_id)
-    );
+engine = create_engine('sqlite:///vuztrack.sqlite3',
+                       echo=True)
 
-    CREATE TABLE IF NOT EXISTS applicants (
-        applicant_id TEXT PRIMARY KEY,
-        name TEXT,
-        is_hidden INTEGER DEFAULT 0
-    );
 
-    CREATE TABLE IF NOT EXISTS applications (
-        application_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        applicant_id TEXT NOT NULL,
-        program_id INTEGER NOT NULL,
-        submission_date DATE DEFAULT CURRENT_DATE,
-        ege_score INTEGER,
-        individual_achievements INTEGER,
-        total_score INTEGER,
-        priority INTEGER,
-        application_type TEXT,
-        is_original_docs INTEGER DEFAULT 0,
-        consent_to_enroll INTEGER DEFAULT 0,
-        FOREIGN KEY (applicant_id) REFERENCES applicants(applicant_id),
-        FOREIGN KEY (program_id) REFERENCES programs(program_id)
-    );
+class Base(DeclarativeBase):
+    pass
 
-    CREATE TABLE IF NOT EXISTS application_history (
-        log_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        applicant_id TEXT NOT NULL,
-        program_id INTEGER NOT NULL,
-        check_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-        total_score INTEGER,
-        is_present INTEGER DEFAULT 1,
-        rank_position INTEGER,
-        priority INTEGER,
-        FOREIGN KEY (applicant_id) REFERENCES applicants(applicant_id),
-        FOREIGN KEY (program_id) REFERENCES programs(program_id)
-    );
 
-    CREATE TABLE IF NOT EXISTS parsing_sources (
-    source_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    university_id INTEGER NOT NULL,
-    program_name TEXT,
-    profile TEXT,
-    data_url TEXT NOT NULL,
-    file_type TEXT DEFAULT 'html',
-    parser_key TEXT,
-    last_checked DATETIME,
-    enabled INTEGER DEFAULT 1,
-    FOREIGN KEY (university_id) REFERENCES universities(university_id)
-);
-    '''
+#ТАБЛИЦА АБИТУРИЕНТОВ
+class Applicants(Base):
+    __tablename__ = 'applicants'
+    applicant_id = Column(Integer, primary_key=True)
+    registry_number = Column(String, nullable=False, unique=True)
 
-    conn = sqlite3.connect("vuztrack.sqlite")
-    cursor = conn.cursor()
-    cursor.executescript(schema)
-    conn.commit()
-    conn.close()
-    print("✅ База данных успешно создана: vuztrack.sqlite")
 
-if __name__ == "__main__":
-    create_db()
+#ТАБЛИЦА С РЕЗУЛЬТАТАМИ ОДНОГО АБИТУРИЕНТА
+class Ege_results(Base):
+    __tablename__ = 'results'
+    id = Column(Integer, primary_key=True)
+    applicant_id = Column(String, ForeignKey('applicants'), nullable=False)
+    year = Column(Integer)
+    math_score = Column(Integer)
+    russian_score = Column(Integer)
+    physics_score = Column(Integer)
+    informatics_score = Column(Integer)
+    chemistry_score = Column(Integer)
+    biology_score = Column(Integer)
+    geography_score = Column(Integer)
+    literature_score = Column(Integer)
+    history_score = Column(Integer)
+    social_score = Column(Integer)
+    foreign_score = Column(Integer)
+    created_at = Column(Integer)
+
+
+class Universities(Base):
+    __tablename__ = 'universities'
+    university_id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    city = Column(String, nullable=False)
+    website = Column(String)
+    created_at = Column(Integer)
+
+
+class Directions(Base):
+    __tablename__ = 'directions'
+    direction_id = Column(Integer, primary_key=True)
+    code = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    edu_level = Column(String, nullable=False)
+
+
+class Programs(Base):
+    __tablename__ = 'programs'
+    program_id = Column(Integer, primary_key=True)
+    direction_id = Column(String, ForeignKey('directions'), nullable=False)
+    university_id = Column(String, ForeignKey('universities'), nullable=False)
+    profile_name = Column(String, nullable=False)
+    study_form = Column(String, nullable=False)
+    num_budget_places = Column(Integer)
+    min_score = Column(Integer)
+
+
+class Aplications(Base):
+    __tablename__ = 'applications'
+    id = Column(Integer, primary_key=True)
+    applicant_id = Column(String, ForeignKey('applicants'), nullable=False)
+    program_id = Column(String, ForeignKey('programs'), nullable=False)
+    ege_total_score = Column(Integer)
+    priority = Column(Integer)
+    is_original = Column(Boolean)
+    status = Column(String) # в конкурсе / зачислен / отклонен
+
+
+class Parser_links(Base):
+    __tablename__ = 'parser_links'
+    parser_link_id = Column(Integer, primary_key=True)
+    university_id = Column(String, ForeignKey('universities'), nullable=False)
+    program_id = Column(String, ForeignKey('programs'), nullable=False)
+    url = Column(String, nullable=False)
+    parser_type = Column(String, nullable=False) # selenium / bs4...
+    last_checked = Column(String, nullable=False)
+
+
+class Parser_applicants(Base):
+    __tablename__ = 'parser_applicants'
+    id = Column(Integer, primary_key=True)
+    parser_link_id = Column(Integer, ForeignKey('parser_links'), nullable=False)
+    program_id = Column(String, ForeignKey('programs'), nullable=False)
+    rank = Column(Integer)
+    total_score = Column(Integer)
+    is_original = Column(Boolean)
+    snils_hash = Column(String)
+
+
+Base.metadata.create_all(engine)
