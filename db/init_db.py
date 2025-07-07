@@ -1,9 +1,12 @@
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean
-from sqlalchemy.orm import DeclarativeBase, relationship, Session
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
+import os
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(BASE_DIR, "db", "vuztrack.sqlite3")
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-engine = create_engine('sqlite:///vuztrack.sqlite3',
-                       echo=True)
+engine = create_engine(f"sqlite:///{DB_PATH}", echo=True)
 
 
 class Base(DeclarativeBase):
@@ -57,8 +60,8 @@ class Directions(Base):
 class Programs(Base):
     __tablename__ = 'programs'
     program_id = Column(Integer, primary_key=True)
-    direction_id = Column(String, ForeignKey('directions'), nullable=False)
-    university_id = Column(String, ForeignKey('universities'), nullable=False)
+    direction_id = Column(Integer, ForeignKey('directions'), nullable=False)
+    university_id = Column(Integer, ForeignKey('universities'), nullable=False)
     profile_name = Column(String, nullable=False)
     study_form = Column(String, nullable=False)
     num_budget_places = Column(Integer)
@@ -79,8 +82,8 @@ class Aplications(Base):
 class Parser_links(Base):
     __tablename__ = 'parser_links'
     parser_link_id = Column(Integer, primary_key=True)
-    university_id = Column(String, ForeignKey('universities'), nullable=False)
-    program_id = Column(String, ForeignKey('programs'), nullable=False)
+    university_id = Column(Integer, ForeignKey('universities'), nullable=False)
+    program_id = Column(Integer, ForeignKey('programs'), nullable=False)
     url = Column(String, nullable=False)
     parser_type = Column(String, nullable=False) # selenium / bs4...
     last_checked = Column(String, nullable=False)
@@ -98,3 +101,6 @@ class Parser_applicants(Base):
 
 
 Base.metadata.create_all(engine)
+
+
+Session = sessionmaker(bind=engine)
