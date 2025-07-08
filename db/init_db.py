@@ -17,7 +17,7 @@ class Base(DeclarativeBase):
 class Applicants(Base):
     __tablename__ = 'applicants'
     applicant_id = Column(Integer, primary_key=True)
-    registry_number = Column(String, nullable=False, unique=True)
+    registry_number = Column(String, nullable=False)
 
 
 #ТАБЛИЦА С РЕЗУЛЬТАТАМИ ОДНОГО АБИТУРИЕНТА
@@ -96,7 +96,7 @@ class Parser_applicants(Base):
     program_id = Column(String, ForeignKey('programs'), nullable=False)
     rank = Column(Integer)
     total_score = Column(Integer)
-    is_original = Column(Boolean)
+    is_original = Column(String)
     snils_hash = Column(String)
 
 
